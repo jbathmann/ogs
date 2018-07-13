@@ -14,6 +14,7 @@
 #include "ConstraintDirichletBoundaryCondition.h"
 #include "DirichletBoundaryCondition.h"
 #include "NeumannBoundaryCondition.h"
+#include "NeumannTimeDependantBoundaryCondition.h"
 #include "NonuniformDirichletBoundaryCondition.h"
 #include "NonuniformNeumannBoundaryCondition.h"
 #include "NormalTractionBoundaryCondition.h"
@@ -45,6 +46,12 @@ std::unique_ptr<BoundaryCondition> createBoundaryCondition(
             config.config, config.mesh, dof_table, variable_id,
             *config.component_id, mesh.isAxiallySymmetric(), integration_order,
             shapefunction_order, mesh.getDimension(), parameters);
+    }
+        if (type == "NeumannTimeDependant")
+    {
+        return ProcessLib::createNeumannTimeDependantBoundaryCondition(
+            config.config, dof_table, variable_id, *config.component_id,
+            integration_order, shapefunction_order, mesh);
     }
     if (type == "Robin")
     {

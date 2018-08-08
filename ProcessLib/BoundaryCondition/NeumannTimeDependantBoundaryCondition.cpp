@@ -54,33 +54,33 @@ std::unique_ptr<NeumannTimeDependantBoundaryCondition> createNeumannTimeDependan
     auto const* const resistance = boundary_mesh->getProperties().getPropertyVector<double>(resistance_name);
     
     
-    // TODO finally use ProcessLib::Parameter here
-    auto const field_name =
-        //! \ogs_file_param{prj__process_variables__process_variable__boundary_conditions__boundary_condition__NonuniformNeumann__field_name}
-        config.getConfigParameter<std::string>("boundary_value");
-
-    MeshLib::addPropertyToMesh(*boundary_mesh, field_name, MeshLib::MeshItemType::Node, 1, *g);
-    auto const* const property =
-        boundary_mesh->getProperties().getPropertyVector<double>(field_name);
-
-    if (!property)
-    {
-        OGS_FATAL("The property with name `%s' was not set up properly in `%s'.",
-                  field_name.c_str(), mesh_file.c_str());
-    }
-
-    if (property->getMeshItemType() != MeshLib::MeshItemType::Node)
-    {
-        OGS_FATAL(
-            "Only nodal fields are supported for non-uniform fields. Field "
-            "`%s' is not nodal.",
-            field_name.c_str());
-    }
-
-    if (property->getNumberOfComponents() != 1)
-    {
-        OGS_FATAL("`%s' is not a one-component field.", field_name.c_str());
-    }
+//    // TODO finally use ProcessLib::Parameter here
+//    auto const field_name =
+//        //! \ogs_file_param{prj__process_variables__process_variable__boundary_conditions__boundary_condition__NonuniformNeumann__field_name}
+//        config.getConfigParameter<std::string>("boundary_value");
+//
+//    MeshLib::addPropertyToMesh(*boundary_mesh, field_name, MeshLib::MeshItemType::Node, 1, *g);
+//    auto const* const property =
+//        boundary_mesh->getProperties().getPropertyVector<double>(field_name);
+//
+//    if (!property)
+//    {
+//        OGS_FATAL("The property with name `%s' was not set up properly in `%s'.",
+//                  field_name.c_str(), mesh_file.c_str());
+//    }
+//
+//    if (property->getMeshItemType() != MeshLib::MeshItemType::Node)
+//    {
+//        OGS_FATAL(
+//            "Only nodal fields are supported for non-uniform fields. Field "
+//            "`%s' is not nodal.",
+//            field_name.c_str());
+//    }
+//
+//    if (property->getNumberOfComponents() != 1)
+//    {
+//        OGS_FATAL("`%s' is not a one-component field.", field_name.c_str());
+//    }
 
     std::string const mapping_to_bulk_nodes_property = "OriginalSubsurfaceNodeIDs";
     auto const* const mapping_to_bulk_nodes =

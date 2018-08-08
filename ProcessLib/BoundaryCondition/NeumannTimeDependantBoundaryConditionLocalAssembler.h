@@ -64,19 +64,16 @@ public:
         // concentration has id 0, pressure has id 1
         _local_rhs.setZero();
         auto indices = NumLib::getIndices(id, dof_table_boundary);
-        std::cout << t << std::endl;
-//        for(unsigned ip = 0; ip < n_integration_pointsx; ip++)
-//        {
-//            std::cout << x.get(ip) << "bei der id " << id << std::endl;
-//        }
+//        std::cout << t << std::endl;
+
         // TODO lots of heap allocations.
         std::vector<double> neumann_param_nodal_values_local;
         neumann_param_nodal_values_local.reserve(indices.size());
         for (auto i : indices)
         {
             double resistance = _data.resistance.getComponent(i, 0);
-            double local_neumann_gradient = resistance*_data.psi_leaf.getComponent(i, 0);
-            local_neumann_gradient += resistance*_data.gravitation_values.getComponent(i, 0);
+            double local_neumann_gradient = 1/resistance*_data.psi_leaf.getComponent(i, 0);
+            local_neumann_gradient += 1/resistance*_data.gravitation_values.getComponent(i, 0);
 
             auto const bulk_node_id =
                 _data.mapping_to_bulk_nodes.getComponent(i, 0);
@@ -84,23 +81,23 @@ public:
             double concentration = x[2*bulk_node_id];
             double pressure = x[2*bulk_node_id+1];
             
-            local_neumann_gradient += resistance*concentration * 85000;
-            local_neumann_gradient -= resistance*pressure;
-            if(_data.variable_id_bulk == 0 ){local_neumann_gradient*=-concentration;}      
-            std::cout << "concentration at node = " << concentration << std::endl;
-            std::cout << "pressure  at node = " << x[2*bulk_node_id+1] <<std::endl;
-            std::cout << "local neumann gradient = " << local_neumann_gradient <<std::endl;
-            std::cout << "local neumann gradient without resistance = " << local_neumann_gradient/resistance <<std::endl;
-            std::cout << "variable_id_bulk = " << _data.variable_id_bulk << std::endl;
+            local_neumann_gradient += 1/resistance*concentration * 85000;
+            local_neumann_gradient -= 1/resistance*pressure;
+            if(_data.variable_id_bulk == 0 ){local_neumann_gradient*=0;}//-1;}//concentration;}      
+//            std::cout << "concentration at node = " << concentration << std::endl;
+//            std::cout << "pressure  at node = " << x[2*bulk_node_id+1] <<std::endl;
+//            std::cout << "local neumann gradient = " << local_neumann_gradient <<std::endl;
+//            std::cout << "local neumann gradient without resistance = " << local_neumann_gradient*resistance <<std::endl;
+//            std::cout << "variable_id_bulk = " << _data.variable_id_bulk << std::endl;
             
             int ti(t);
             ti/= 43200;
             ti=ti%2;
-            std::cout << "t_i = " << ti << "and t = " << t << std::endl;
-            
+//            std::cout << "t_i = " << ti << "and t = " << t << std::endl;
             neumann_param_nodal_values_local.push_back(
-                ti*local_neumann_gradient);
-            std::cout <<" ---" << std::endl;
+            local_neumann_gradient);
+
+//            std::cout <<" ---" << std::endl;
             
         }
 
@@ -118,12 +115,8 @@ public:
         // map boundary dof indices to bulk dof indices
         for (auto& i : indices)
         {
-            std::cout << i << std::endl;
             auto const bulk_node_id =
                 _data.mapping_to_bulk_nodes.getComponent(i, 0);
-            std::cout << bulk_node_id << std::endl;
-
-            std::cout << "variable id " << _data.variable_id_bulk << std::endl;
 
             MeshLib::Location const l{
                 _data.bulk_mesh_id, MeshLib::MeshItemType::Node, bulk_node_id};

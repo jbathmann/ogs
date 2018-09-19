@@ -54,17 +54,19 @@ public:
     {
     }
 
-        void assemble(std::size_t const mesh_item_id,
+    void assemble(std::size_t const mesh_item_id,
                   NumLib::LocalToGlobalIndexMap const& dof_table_boundary,
-                  double const t, const GlobalVector& x,
-                  GlobalMatrix& /*K*/, GlobalVector& b,
-                  GlobalMatrix* /*Jac*/) override
+                  double const t, const GlobalVector& x, GlobalMatrix& /*K*/,
+                  GlobalVector& b, GlobalMatrix* /*Jac*/) override
     {
         _local_rhs.setZero();
 
-        MeshNodeParameter<double> constant_values{"ConstantValues", _data.constant};
-        MeshNodeParameter<double> prefac1_values{"Prefac1Values", _data.prefac1};
-        MeshNodeParameter<double> prefac2_values{"Prefac2Values", _data.prefac2};
+        MeshNodeParameter<double> constant_values{"ConstantValues",
+                                                  _data.constant};
+        MeshNodeParameter<double> prefac1_values{"Prefac1Values",
+                                                 _data.prefac1};
+        MeshNodeParameter<double> prefac2_values{"Prefac2Values",
+                                                 _data.prefac2};
         // Get element nodes for the interpolation from nodes to
         // integration point.
         NodalVectorType constant_node_values =
@@ -72,12 +74,14 @@ public:
         NodalVectorType prefac1_node_values =
             prefac1_values.getNodalValuesOnElement(Base::_element, t);
         NodalVectorType prefac2_node_values =
-            prefac2_values.getNodalValuesOnElement(Base::_element, t);   
+            prefac2_values.getNodalValuesOnElement(Base::_element, t);
         unsigned const n_integration_points =
             Base::_integration_method.getNumberOfPoints();
         NodalVectorType neumann_node_values;
-        auto const indices_v1 = NumLib::getIndices(mesh_item_id, dof_table_boundary);  
-        auto const indices_v2 = NumLib::getIndices(mesh_item_id, _data.dof_table_boundary_v2); 
+        auto const indices_v1 =
+            NumLib::getIndices(mesh_item_id, dof_table_boundary);
+        auto const indices_v2 =
+            NumLib::getIndices(mesh_item_id, _data.dof_table_boundary_v2);
         std::vector<double> local_v1 = x.get(indices_v1);
         std::vector<double> local_v2 = x.get(indices_v2);
 
@@ -86,21 +90,20 @@ public:
             auto const& n_and_weight = Base::_ns_and_weights[ip];
             auto const& N = n_and_weight.N;
             auto const& w = n_and_weight.weight;
-            
+
             double v1_int_pt = 0.0;
             double v2_int_pt = 0.0;
 
             NumLib::shapeFunctionInterpolate(local_v1, N, v1_int_pt);
             NumLib::shapeFunctionInterpolate(local_v2, N, v2_int_pt);
-            neumann_node_values = constant_node_values + 
-                    prefac1_node_values*v1_int_pt+
-                    prefac2_node_values*v2_int_pt;
+            neumann_node_values = constant_node_values +
+                                  prefac1_node_values * v1_int_pt +
+                                  prefac2_node_values * v2_int_pt;
 
             _local_rhs.noalias() += N * neumann_node_values.dot(N) * w;
         }
 
         b.add(indices_v1, _local_rhs);
-
     }
 
 private:

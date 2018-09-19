@@ -25,11 +25,7 @@ struct NonuniformVariableDependantNeumannBoundaryConditionData
     MeshLib::PropertyVector<double> const& prefac1;
     MeshLib::PropertyVector<double> const& prefac2;
     // Used for mapping boundary nodes to bulk nodes.
-    std::size_t bulk_mesh_id;
-    MeshLib::PropertyVector<std::size_t> const& mapping_to_bulk_nodes;
-    NumLib::LocalToGlobalIndexMap const& dof_table_bulk;
-    int const variable_id_bulk;
-    int const component_id_bulk;
+    NumLib::LocalToGlobalIndexMap const& dof_table_boundary_v2;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -58,7 +54,7 @@ public:
     {
     }
 
-    void assemble(std::size_t const id,
+        void assemble(std::size_t const mesh_item_id,
                   NumLib::LocalToGlobalIndexMap const& dof_table_boundary,
                   double const t, const GlobalVector& x,
                   GlobalMatrix& /*K*/, GlobalVector& b,
@@ -76,44 +72,35 @@ public:
         NodalVectorType prefac1_node_values =
             prefac1_values.getNodalValuesOnElement(Base::_element, t);
         NodalVectorType prefac2_node_values =
-            prefac2_values.getNodalValuesOnElement(Base::_element, t);
-        auto const num_nodes = x.size();
-        int offset; double localv1; double localv2;
-        if(id == 0){
-            offset=1;}
-        else{ offset=-1;}
-//        std::cout << "num_nodes: " << num_nodes << std::endl;
+            prefac2_values.getNodalValuesOnElement(Base::_element, t);   
         unsigned const n_integration_points =
             Base::_integration_method.getNumberOfPoints();
         NodalVectorType neumann_node_values;
-        auto const indices = NumLib::getIndices(id, dof_table_boundary);  
-        auto const local_x = x.get(indices);
-
-       
+        auto const indices_v1 = NumLib::getIndices(mesh_item_id, dof_table_boundary);  
+        auto const indices_v2 = NumLib::getIndices(mesh_item_id, _data.dof_table_boundary_v2); 
+        std::vector<double> local_v1 = x.get(indices_v1);
+        std::vector<double> local_v2 = x.get(indices_v2);
 
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
-            localv1 = x[indices[ip]];
-            localv2 = x[indices[ip]+offset];
-//            std::cout << "p = " << localv1 << " c = " << localv2 << std::endl;
-                    
-
             auto const& n_and_weight = Base::_ns_and_weights[ip];
             auto const& N = n_and_weight.N;
             auto const& w = n_and_weight.weight;
+            
+            double v1_int_pt = 0.0;
+            double v2_int_pt = 0.0;
+
+            NumLib::shapeFunctionInterpolate(local_v1, N, v1_int_pt);
+            NumLib::shapeFunctionInterpolate(local_v2, N, v2_int_pt);
             neumann_node_values = constant_node_values + 
-                    prefac1_node_values*localv1+
-                    prefac2_node_values*localv2;
-//            std::cout << neumann_node_values.dot(N) << "dot product" << std::endl;
-//            std::cout << neumann_node_values[ip] << std::endl; 
+                    prefac1_node_values*v1_int_pt+
+                    prefac2_node_values*v2_int_pt;
+
             _local_rhs.noalias() += N * neumann_node_values.dot(N) * w;
         }
 
-        for(unsigned int i= 0 ; i<indices.size(); i++){
-//            std::cout << indices[i] << std::endl;}
-//        std::cout << "__________________" << std::endl;
-        b.add(indices, _local_rhs);}
-//        std::cout << "__________________" << std::endl;
+        b.add(indices_v1, _local_rhs);
+
     }
 
 private:

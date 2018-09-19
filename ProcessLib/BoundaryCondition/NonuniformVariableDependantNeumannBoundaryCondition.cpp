@@ -112,6 +112,11 @@ createNonuniformVariableDependantNeumannBoundaryCondition(
                   mapping_to_bulk_nodes_property.c_str());
     }
 
+    std::vector<MeshLib::Node*> const& bc_nodes = boundary_mesh.getNodes();
+    MeshLib::MeshSubset bc_mesh_subset(boundary_mesh, bc_nodes);
+    auto const* const dof_table_boundary_v2 = dof_table.deriveBoundaryConstrainedMap(
+       (variable_id+1)%2, {component_id}, std::move(bc_mesh_subset));
+    
     // In case of partitioned mesh the boundary could be empty, i.e. there is no
     // boundary condition.
 #ifdef USE_PETSC
@@ -131,8 +136,7 @@ createNonuniformVariableDependantNeumannBoundaryCondition(
         integration_order, shapefunction_order, dof_table, variable_id,
         component_id, bulk_mesh.getDimension(), boundary_mesh,
         NonuniformVariableDependantNeumannBoundaryConditionData{
-            *constant, *prefac1, *prefac2, bulk_mesh.getID(),
-            *mapping_to_bulk_nodes, dof_table, variable_id, component_id});
+            *constant, *prefac1, *prefac2, *dof_table_boundary_v2});
 }
 
 }  // ProcessLib

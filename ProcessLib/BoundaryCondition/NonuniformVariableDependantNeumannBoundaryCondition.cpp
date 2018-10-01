@@ -51,8 +51,15 @@ createNonuniformVariableDependantNeumannBoundaryCondition(
 
     auto const* const prefac2 =
         boundary_mesh.getProperties().getPropertyVector<double>(prefac2_name);
+    
+    auto const prefac3_name =
+        //! \ogs_file_param{prj__process_variables__process_variable__boundary_conditions__boundary_condition__NonuniformNeumann__prefac2_name}
+        config.getConfigParameter<std::string>("prefac3_name");
 
-    if (!constant || !prefac1 || !prefac2)
+    auto const* const prefac3 =
+        boundary_mesh.getProperties().getPropertyVector<double>(prefac3_name);
+
+    if (!constant || !prefac1 || !prefac2|| !prefac3)
     {
         if (!constant)
         {
@@ -69,11 +76,17 @@ createNonuniformVariableDependantNeumannBoundaryCondition(
             OGS_FATAL("A property with name `%s' does not exist in `%s'.",
                       prefac2_name.c_str(), boundary_mesh.getName().c_str());
         }
+        if (!prefac3)
+        {
+            OGS_FATAL("A property with name `%s' does not exist in `%s'.",
+                      prefac3_name.c_str(), boundary_mesh.getName().c_str());
+        }
     }
 
     if (constant->getMeshItemType() != MeshLib::MeshItemType::Node ||
         prefac1->getMeshItemType() != MeshLib::MeshItemType::Node ||
-        prefac2->getMeshItemType() != MeshLib::MeshItemType::Node)
+        prefac2->getMeshItemType() != MeshLib::MeshItemType::Node||
+        prefac3->getMeshItemType() != MeshLib::MeshItemType::Node)
     {
         if (constant->getMeshItemType() != MeshLib::MeshItemType::Node)
         {
@@ -96,11 +109,19 @@ createNonuniformVariableDependantNeumannBoundaryCondition(
                 "`%s' is not nodal.",
                 prefac2_name.c_str());
         }
+        if (prefac3->getMeshItemType() != MeshLib::MeshItemType::Node)
+        {
+            OGS_FATAL(
+                "Only nodal fields are supported for non-uniform fields. Field "
+                "`%s' is not nodal.",
+                prefac3_name.c_str());
+        }
     }
 
     if (constant->getNumberOfComponents() != 1 ||
         prefac1->getNumberOfComponents() != 1 ||
-        prefac2->getNumberOfComponents() != 1)
+        prefac2->getNumberOfComponents() != 1 ||
+        prefac3->getNumberOfComponents() != 1)
     {
         if (constant->getNumberOfComponents() != 1)
         {
@@ -116,6 +137,11 @@ createNonuniformVariableDependantNeumannBoundaryCondition(
         {
             OGS_FATAL("`%s' is not a one-component field.",
                       prefac2_name.c_str());
+        }
+        if (prefac3->getNumberOfComponents() != 1)
+        {
+            OGS_FATAL("`%s' is not a one-component field.",
+                      prefac3_name.c_str());
         }
     }
 
@@ -158,7 +184,7 @@ createNonuniformVariableDependantNeumannBoundaryCondition(
         integration_order, shapefunction_order, dof_table, variable_id,
         component_id, bulk_mesh.getDimension(), boundary_mesh,
         NonuniformVariableDependantNeumannBoundaryConditionData{
-            *constant, *prefac1, *prefac2, *dof_table_boundary_v2});
+            *constant, *prefac1, *prefac2, *prefac3, *dof_table_boundary_v2});
 }
 
 }  // namespace ProcessLib

@@ -24,6 +24,7 @@ struct NonuniformVariableDependantNeumannBoundaryConditionData
     MeshLib::PropertyVector<double> const& constant;
     MeshLib::PropertyVector<double> const& prefac1;
     MeshLib::PropertyVector<double> const& prefac2;
+    MeshLib::PropertyVector<double> const& prefac3;
     // Used for mapping boundary nodes to bulk nodes.
     NumLib::LocalToGlobalIndexMap const& dof_table_boundary_v2;
 };
@@ -67,6 +68,8 @@ public:
                                                  _data.prefac1};
         MeshNodeParameter<double> prefac2_values{"Prefac2Values",
                                                  _data.prefac2};
+        MeshNodeParameter<double> prefac3_values{"Prefac3Values",
+                                                 _data.prefac3};
         // Get element nodes for the interpolation from nodes to
         // integration point.
         NodalVectorType constant_node_values =
@@ -75,6 +78,8 @@ public:
             prefac1_values.getNodalValuesOnElement(Base::_element, t);
         NodalVectorType prefac2_node_values =
             prefac2_values.getNodalValuesOnElement(Base::_element, t);
+        NodalVectorType prefac3_node_values =
+            prefac3_values.getNodalValuesOnElement(Base::_element, t);
         unsigned const n_integration_points =
             Base::_integration_method.getNumberOfPoints();
         NodalVectorType neumann_node_values;
@@ -98,7 +103,8 @@ public:
             NumLib::shapeFunctionInterpolate(local_v2, N, v2_int_pt);
             neumann_node_values = constant_node_values +
                                   prefac1_node_values * v1_int_pt +
-                                  prefac2_node_values * v2_int_pt;
+                                  prefac2_node_values * v2_int_pt +
+                                  prefac3_node_values * v1_int_pt * v2_int_pt;
 
             _local_rhs.noalias() += N * neumann_node_values.dot(N) * w;
         }

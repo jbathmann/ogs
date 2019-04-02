@@ -203,18 +203,17 @@ public:
             auto MCC =
                 local_M.template block<concentration_size, concentration_size>(
                     concentration_index, concentration_index);
-            auto MCp =
-                local_M.template block<concentration_size, pressure_size>(
-                    concentration_index, pressure_index);
             auto MpC =
                 local_M.template block<pressure_size, concentration_size>(
                     pressure_index, concentration_index);
+            auto BC = local_b.template segment<concentration_size>(
+                concentration_index);
 
             auto local_C = Eigen::Map<const NodalVectorType>(
                 &local_x[concentration_index], concentration_size);
 
             assembleBlockMatrices(component_id, t, local_C, local_p, KCC, MCC,
-                                  MCp, MpC, Kpp, Mpp, Bp);
+                                  MpC, Kpp, Mpp, BC, Bp);
         }
     }
 
@@ -224,10 +223,10 @@ public:
         Eigen::Ref<const NodalVectorType> const& p_nodal_values,
         Eigen::Ref<LocalBlockMatrixType> KCC,
         Eigen::Ref<LocalBlockMatrixType> MCC,
-        Eigen::Ref<LocalBlockMatrixType> MCp,
         Eigen::Ref<LocalBlockMatrixType> MpC,
         Eigen::Ref<LocalBlockMatrixType> Kpp,
         Eigen::Ref<LocalBlockMatrixType> Mpp,
+        Eigen::Ref<LocalSegmentVectorType> BC,
         Eigen::Ref<LocalSegmentVectorType> Bp)
     {
         unsigned const n_integration_points =
@@ -343,22 +342,17 @@ public:
                           I);
 
             // matrix assembly
-            MCp.noalias() += w * N.transpose() * N * C_nodal_values *
-                             retardation_factor * porosity * drho_dp * N;
-            MCC.noalias() += w * N.transpose() * retardation_factor * porosity *
-                                 density * N +
-                             w * N.transpose() * retardation_factor * porosity *
-                                 N * C_nodal_values * drho_dC * N;
-
+            MCC.noalias() +=
+                w * N.transpose() * retardation_factor * porosity * density * N;
             KCC.noalias() +=
-                (-dNdx.transpose() * velocity * density * N +
-                 dNdx.transpose() * density * hydrodynamic_dispersion * dNdx +
+                (dNdx.transpose() * density * hydrodynamic_dispersion * dNdx +
                  N.transpose() * decay_rate * porosity * retardation_factor *
                      density * N) *
                 w;
-
             MpC.noalias() += w * N.transpose() * porosity * drho_dC * N;
 
+            BC -= w * N.transpose() * density *
+                  velocity.dot(dNdx * C_nodal_values);
             // Calculate Mpp, Kpp, and bp in the first loop over components
             if (component_id == 0)
             {
@@ -500,8 +494,7 @@ public:
 
     void assembleComponentTransportEquation(
         double const t, std::vector<double>& local_M_data,
-        std::vector<double>& local_K_data,
-        std::vector<double>& /*local_b_data*/,
+        std::vector<double>& local_K_data, std::vector<double>& local_b_data,
         LocalCoupledSolutions const& coupled_xs)
     {
         auto const& transport_process_id = coupled_xs.process_id;
@@ -515,12 +508,12 @@ public:
             coupled_xs.local_coupled_xs0[hydraulic_process_id].data(),
             pressure_size);
 
-        auto const dt = coupled_xs.dt;
-
         auto local_M = MathLib::createZeroedMatrix<LocalBlockMatrixType>(
             local_M_data, concentration_size, concentration_size);
         auto local_K = MathLib::createZeroedMatrix<LocalBlockMatrixType>(
             local_K_data, concentration_size, concentration_size);
+        auto local_b = MathLib::createZeroedVector<LocalSegmentVectorType>(
+            local_b_data, concentration_size);
 
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
@@ -601,15 +594,6 @@ public:
                                           (dNdx * local_p - density * b))
                     : GlobalDimVectorType(-K_over_mu * dNdx * local_p);
 
-            const double drho_dp = _process_data.fluid_properties->getdValue(
-                MaterialLib::Fluid::FluidPropertyType::Density,
-                vars,
-                MaterialLib::Fluid::PropertyVariableType::p);
-
-            const double drho_dC = _process_data.fluid_properties->getdValue(
-                MaterialLib::Fluid::FluidPropertyType::Density,
-                vars,
-                MaterialLib::Fluid::PropertyVariableType::C);
             double const velocity_magnitude = velocity.norm();
             GlobalDimMatrixType const hydrodynamic_dispersion =
                 velocity_magnitude != 0.0
@@ -629,27 +613,19 @@ public:
                           I);
 
             // matrix assembly
-            local_M.noalias() += w * N.transpose() * retardation_factor *
-                                     porosity * density * N +
-                                 w * N.transpose() * retardation_factor *
-                                     porosity * C_int_pt * drho_dC * N;
+            local_M.noalias() +=
+                w * N.transpose() * retardation_factor * porosity * density * N;
 
-            // coupling term
-            {
-                double p0_int_pt = 0.0;
-                NumLib::shapeFunctionInterpolate(local_p0, N, p0_int_pt);
+            double p0_int_pt = 0.0;
+            NumLib::shapeFunctionInterpolate(local_p0, N, p0_int_pt);
 
-                local_K.noalias() +=
-                    (-dNdx.transpose() * velocity * density * N +
-                     dNdx.transpose() * density * hydrodynamic_dispersion *
-                         dNdx +
-                     N.transpose() *
-                         (decay_rate * porosity * retardation_factor * density +
-                          porosity * retardation_factor * drho_dp *
-                              (p_int_pt - p0_int_pt) / dt) *
-                         N) *
-                    w;
-            }
+            local_K.noalias() +=
+                (dNdx.transpose() * density * hydrodynamic_dispersion * dNdx +
+                 N.transpose() * decay_rate * porosity * retardation_factor *
+                     density * N) *
+                w;
+            local_b -=
+                w * N.transpose() * density * velocity.dot(dNdx * local_C);
         }
     }
 

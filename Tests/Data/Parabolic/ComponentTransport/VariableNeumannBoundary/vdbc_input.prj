@@ -246,7 +246,7 @@
             <components>1</components>
             <order>1</order>
             <initial_condition>c_ini</initial_condition>
-            <boundary_conditions>
+            <boundary_conditions><!--
                 <boundary_condition>
                     <type>VariableDependentNeumann</type>
                     <mesh>vdbc_input_rightBoundary</mesh>
@@ -254,7 +254,7 @@
                     <coefficient_current_variable_name>Cprefac1</coefficient_current_variable_name>
                     <coefficient_other_variable_name>Cprefac2</coefficient_other_variable_name>
                     <coefficient_mixed_variables_name>Cprefac3</coefficient_mixed_variables_name>
-                </boundary_condition>
+                </boundary_condition>-->
                 <boundary_condition>
                     <type>Dirichlet</type>
                     <mesh>vdbc_input_leftBoundary</mesh>

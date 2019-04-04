@@ -100,7 +100,7 @@ public:
             NumLib::shapeFunctionInterpolate(local_values, N, int_pt_value);
 
             NodalVectorType const neumann_node_values =
-                -boundary_permeability_node_values * int_pt_value *
+                boundary_permeability_node_values * int_pt_value *
                 _data.process
                     .getFlux(_bulk_element_id, bulk_element_point, t, x)
                     .dot(_surface_eigenvector);

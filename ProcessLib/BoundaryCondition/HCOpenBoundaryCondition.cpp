@@ -8,8 +8,7 @@
  */
 
 #include "HCOpenBoundaryCondition.h"
-
-#include "ProcessLib/Utils/ProcessUtils.h"
+#include "ParameterLib/Utils.h"
 
 namespace ProcessLib
 {
@@ -17,7 +16,7 @@ std::unique_ptr<HCOpenBoundaryCondition> createHCOpenBoundaryCondition(
     BaseLib::ConfigTree const& config, MeshLib::Mesh const& bc_mesh,
     NumLib::LocalToGlobalIndexMap const& dof_table, int const variable_id,
     int const component_id, unsigned const integration_order,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
     unsigned const global_dim, Process const& process,
     unsigned const shapefunction_order)
 {
@@ -31,7 +30,7 @@ std::unique_ptr<HCOpenBoundaryCondition> createHCOpenBoundaryCondition(
         //! \ogs_file_param{prj__process_variables__process_variable__boundary_conditions__boundary_condition__VariableDependentNeumann__constant_name}
         config.getConfigParameter<std::string>("boundary_permeability");
     auto const& boundary_permeability =
-        findParameter<double>(boundary_permeability_name, parameters, 1);
+        ParameterLib::findParameter<double>(boundary_permeability_name, parameters, 1);
 
     auto const bulk_element_ids =
         bc_mesh.getProperties().template getPropertyVector<std::size_t>(

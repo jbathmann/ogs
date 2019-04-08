@@ -18,6 +18,7 @@
 #include "NormalTractionBoundaryCondition.h"
 #include "PhaseFieldIrreversibleDamageOracleBoundaryCondition.h"
 #include "RobinBoundaryCondition.h"
+#include "TransportReflectionBoundaryCondition.h"
 #include "VariableDependentNeumannBoundaryCondition.h"
 
 #include "BaseLib/TimeInterval.h"
@@ -120,6 +121,13 @@ std::unique_ptr<BoundaryCondition> createBoundaryCondition(
                 //! \ogs_file_param_special{prj__process_variables__process_variable__boundary_conditions__boundary_condition__PhaseFieldIrreversibleDamageOracleBoundaryCondition}
                 config.config, dof_table, bulk_mesh, variable_id,
                 *config.component_id);
+    }
+    if (type == "TransportReflection")
+    {
+        return ProcessLib::createTransportReflectionBoundaryCondition(
+            config.config, config.boundary_mesh, dof_table, variable_id,
+            *config.component_id, integration_order, shapefunction_order,
+            bulk_mesh.getDimension(),  process, parameters);
     }
     OGS_FATAL("Unknown boundary condition type: `%s'.", type.c_str());
 }

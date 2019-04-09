@@ -813,17 +813,17 @@ public:
 
         GlobalDimVectorType q =
             -K_over_mu * shape_matrices.dNdx * p_nodal_values;
-
-        if (_process_data.has_gravity)
-        {
-            auto const rho_w =
+auto const rho_w =
                 _process_data.fluid_properties->getValue(
                     MaterialLib::Fluid::FluidPropertyType::Density, vars);
+        if (_process_data.has_gravity)
+        {
+            
             auto const b = _process_data.specific_body_force;
             q += K_over_mu * rho_w * b;
         }
         Eigen::Vector3d flux(0.0, 0.0, 0.0);
-        flux.head<GlobalDim>() = q;
+        flux.head<GlobalDim>() = rho_w * q;
         return flux;
     }
 

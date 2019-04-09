@@ -25,7 +25,7 @@ std::unique_ptr<TransportReflectionBoundaryCondition> createTransportReflectionB
 //    How can I check for process type == Component Transport? The method above
 //    does not work.
     //! \ogs_file_param{prj__process_variables__process_variable__boundary_conditions__boundary_condition__type}
-    config.checkConfigParameter("type", "HCOpenBoundary");
+    config.checkConfigParameter("type", "TransportReflection");
 
 
     auto const boundary_permeability_name =

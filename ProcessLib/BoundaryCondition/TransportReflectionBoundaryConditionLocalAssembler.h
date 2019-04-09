@@ -40,26 +40,26 @@ protected:
     using NodalMatrixType = typename ShapeMatricesType::NodalMatrixType;
     using NodalVectorType = typename ShapeMatricesType::NodalVectorType;
 
-    struct NAndWeight
+    struct NAndWeight2
     {
-        NAndWeight(typename ShapeMatricesType::ShapeMatrices::ShapeType&& N_,
-                   typename ShapeMatricesType::ShapeMatrices::ShapeType&& dNdx_,
+        NAndWeight2(typename ShapeMatricesType::ShapeMatrices::ShapeType&& N_,
+                   NodalMatrixType const& dNdx_,
                    double const weight_)
-            : N(std::move(N_)), dNdx(dNdx_), weight(weight_)
+            : N(std::move(N_)), dNdx(std::move(dNdx_)), weight(weight_)
         {
         }
         typename ShapeMatricesType::ShapeMatrices::ShapeType const N;
-        typename ShapeMatricesType::ShapeMatrices::ShapeType const dNdx;
+        NodalMatrixType const dNdx;
         double const weight;
     };
 
 private:
-    static std::vector<NAndWeight, Eigen::aligned_allocator<NAndWeight>>
-    initNsAndWeights(MeshLib::Element const& e, bool is_axially_symmetric,
+    static std::vector<NAndWeight2, Eigen::aligned_allocator<NAndWeight2>>
+    initNsAndWeights2(MeshLib::Element const& e, bool is_axially_symmetric,
                      unsigned const integration_order)
     {
         IntegrationMethod const integration_method(integration_order);
-        std::vector<NAndWeight, Eigen::aligned_allocator<NAndWeight>>
+        std::vector<NAndWeight2, Eigen::aligned_allocator<NAndWeight2>>
             ns_and_weights;
         ns_and_weights.reserve(integration_method.getNumberOfPoints());
 
@@ -73,7 +73,7 @@ private:
                 sm.detJ * sm.integralMeasure *
                 integration_method.getWeightedPoint(ip).getWeight();
 
-            ns_and_weights.emplace_back(std::move(sm.N), std::move(sm.dNdx),w);
+            ns_and_weights.emplace_back(std::move(sm.N),std::move(sm.dNdx), w);
         }
 
         return ns_and_weights;
@@ -87,8 +87,10 @@ public:
                                          unsigned const integration_order,
                                          TransportReflectionBoundaryConditionData const& data)
         : Base(e, is_axially_symmetric, integration_order),
-          _data(data),
+          _data(data),_ns_and_weights(
+              initNsAndWeights2(e, is_axially_symmetric, integration_order)),
           _local_rhs(local_matrix_size)
+          
     {
     }
 
@@ -117,13 +119,13 @@ public:
             auto const& dNdx = ip_data.dNdx;
             auto const& w = ip_data.weight;
             auto const& wp = Base::_integration_method.getWeightedPoint(ip);
-
+            auto temp = dNdx * current_variable_nodal_values;
             auto const bulk_element_point = MeshLib::getBulkElementPoint(
                 _data.process.getMesh(), bulk_element_id, bulk_face_id, wp);
 
             // adding a alpha term to the diagonal of the stiffness matrix
             // and a alpha * u_0 term to the rhs vector
-            _local_rhs.noalias() += w * N *  _data.process.getFlux(bulk_element_id, bulk_element_point, t, x).dot(dNdx.transpose() * current_variable_nodal_values);
+            _local_rhs.noalias() += w * N *  _data.process.getFlux(bulk_element_id, bulk_element_point, t, x).dot(temp);
             
         }
 
@@ -132,7 +134,7 @@ public:
 
 private:
     TransportReflectionBoundaryConditionData const& _data;
-    std::vector<NAndWeight, Eigen::aligned_allocator<NAndWeight>> const
+    std::vector<NAndWeight2, Eigen::aligned_allocator<NAndWeight2>> const
         _ns_and_weights;
     typename Base::NodalVectorType _local_rhs;
 
